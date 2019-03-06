@@ -18,8 +18,7 @@ Planned features:
 * Export list of objects and coordinates
 
 
-Uses the breezypythongui library.
-http://home.wlu.edu/~lambertk/breezypythongui/
+https://svn.python.org/projects/python/trunk/Demo/tkinter/matt/canvas-moving-w-mouse.py
 
 Uses the tkinter Python library.
 
