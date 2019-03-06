@@ -8,20 +8,38 @@ class MapCanvas(EasyCanvas):
     def __init__(self, parent):
         EasyCanvas.__init__(self, parent)
         self._items = list()
+        self._tempitems = list()
 
     def mousePressed(self, event):
         self.drawText("("+str(event.x)+", "+str(event.y)+")",
                  event.x, event.y, fill = "black")
+        #self.drawRectangle(event.x-1, event.y-1, event.x+1, event.y+1,
+        #        fill = "blue", outline = "blue")
         self._x0 = event.x
         self._y0 = event.y
+
 
     def mouseReleased(self, event):
         if self._x0 != event.x and self._y0 != event.y:
             rect = self.drawRectangle(self._x0, self._y0, event.x, event.y,
                     fill = "green")
+            #self.drawRectangle(event.x-1, event.y-1, event.x+1, event.y+1,
+            #        fill = "blue", outline = "blue")
             self.drawText("("+str(event.x)+", "+str(event.y)+")",
                  event.x, event.y, fill = "black")
             self._items.append(rect)
+    
+    def mouseMoved(self, event):
+        print(event.x, event.y)
+        if self.x != event.x and self.y != event.y:
+            item = self.drawLine(self._x, self._y,
+                                 event.x, event.y,
+                                 width = 3, fill = "#0000CC")
+            self._x = event.x
+            self._y = event.y
+            self._items.append(item)
+
+
 
 
     #def mouseMoved(self, event):
