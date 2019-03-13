@@ -7,7 +7,7 @@ class WallAnnotate(Frame):
     ###################################################################
     ###### Event callbacks for THE CANVAS (not the stuff drawn on it)
     ###################################################################
-
+    rect_count = 0;
 
 
 
@@ -34,7 +34,7 @@ class WallAnnotate(Frame):
         self.rect = self.draw.create_rectangle(self.lastx, self.lasty, event.x, event.y,
                                                outline="green", fill="green")
         text.insert(INSERT, "Wall")
-        text.insert(INSERT, count)
+        text.insert(INSERT, rect_count)
         text.insert(INSERT, "   ")
         text.insert(INSERT, event.x)
         text.insert(INSERT, "   ")
@@ -44,7 +44,7 @@ class WallAnnotate(Frame):
         text.insert(INSERT, "   ")
         text.insert(INSERT, self.lasty)
         text.insert(INSERT, "\n")
-        #text.insert(INSERT, count)
+        #text.insert(INSERT, rect_count)
         ##Add to list
 
     ###################################################################
