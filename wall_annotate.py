@@ -16,31 +16,78 @@ class WallAnnotate(Frame):
         # whatever the mouse is over gets tagged as CURRENT for free by tk.
         # self.draw.move(CURRENT, event.x - self.lastx, event.y - self.lasty)
 
-        print(event.x, event.y, self.lastx, self.lasty)
-        if self._enable == 1:
+        #print(event.x, event.y, self.lastx, self.lasty)
+        if self._mode == 1:
             # self.lastx = event.x
             # self.lasty = event.y
             self.draw.delete(self.item)
             self.item = self.draw.create_rectangle(self.lastx, self.lasty, event.x, event.y,
                     dash=(3, 5))
 
-    def mouseRelease(self, event):
 
-        ##Code here
-        if self._enable == 1:
+
+    def mouseRelease(self, event):
+    #If in drawing mode
+        if self._mode == 1:
 
             self.draw.delete(self.item)
-            self.rect = self.draw.create_rectangle(self.lastx, self.lasty, event.x, event.y,
-                                               outline="green", fill="green")
+            new_rect = self.draw.create_rectangle(self.lastx, self.lasty, event.x, event.y,
+                                               outline="green", fill="green", tags="selected")
 
-            listbox_text = str(self._count) + " " + str(self.lastx) + " " + str(self.lasty) + " "
+
+            drawn_rect = self.draw.find_closest(event.x, event.y)
+
+            listbox_text = str(self._all_rect_history) + " " + str(self.lastx) + " " + str(self.lasty) + " "
             listbox_text += str(event.x) + " " + str(event.y)
 
-            self.rect_list.insert(self._count+1, listbox_text)
+            self._rect_tracker[drawn_rect] = (self._all_rect_history, listbox_text)
+
+            self.rect_list.insert(self._all_rect_history+1, listbox_text)
 
             self._count += 1
+            self._all_rect_history += 1
 
+            #print(self._count)
+            #print(self._all_rect_history)
+            #print(self._rect_tracker)
+            
+        
+    def clickOnRect(self, event):
+        curr_rect = self.draw.find_closest(event.x, event.y)
+        track_listbox = self.rect_list.get(0, END)
 
+        if self._mode == 0:
+
+            #Find the index of the element in the listbox that has a matching
+            # ID.
+            iter_index = 1
+            for item in track_listbox[1:]:
+
+                if int(item.split()[0]) == self._rect_tracker[curr_rect][0]:
+                    self.rect_list.activate(iter_index)
+                    break
+
+                iter_index += 1
+
+        #If in delete mode, do the same but delete the entry instead of
+        #selecting it.
+        if self._mode == 2:
+
+            iter_index = 1
+            for item in track_listbox[1:]:
+
+                if int(item.split()[0]) == self._rect_tracker[curr_rect][0]:
+                    print("Deleting from listbox...")
+                    self.rect_list.delete(iter_index)
+                    break
+
+                iter_index += 1
+
+            #print("Deleting rectangle")
+            self.draw.delete(curr_rect)
+            del self._rect_tracker[curr_rect]
+
+            self._count -= 1
 
         #text.insert(INSERT, count)
         ##Add to list
@@ -48,15 +95,17 @@ class WallAnnotate(Frame):
     ###################################################################
     ###### Event callbacks for canvas ITEMS (stuff drawn on the canvas)
     ###################################################################
-    # def mouseEnter(self, event):
+    def mouseEnter(self, event):
     # the CURRENT tag is applied to the object the cursor is over.
     # this happens automatically.
-    #    self.draw.itemconfig(CURRENT, fill="red")
+        if self._mode == 2:
+            self.draw.itemconfig(CURRENT, fill="red", outline="red")
 
-    # def mouseLeave(self, event):
+    def mouseLeave(self, event):
     # the CURRENT tag is applied to the object the cursor is over.
     # this happens automatically.
-    #     self.draw.itemconfig(CURRENT, fill="blue") '''
+        if self._mode == 2:
+            self.draw.itemconfig(CURRENT, fill="green", outline="green")
 
     def createWidgets(self):
         self.map = PhotoImage(file=sys.argv[1])
@@ -73,62 +122,71 @@ class WallAnnotate(Frame):
 
         self.draw.create_image(0, 0, anchor=NW, image=self.map)
 
-        #        fred = self.draw.create_oval(0, 0, 20, 20,
-        #                                     fill="green", tags="selected")
-
-        #        self.draw.tag_bind(fred, "<Any-Enter>", self.mouseEnter)
-        #        self.draw.tag_bind(fred, "<Any-Leave>", self.mouseLeave) """
-
-        B = Button(self, text="Mouse cursor", command=lambda: [self.normalCursor(), self.setEnable(0)])
-        if self._enable == 0:
+        B = Button(self, text="Normal Mode", command=lambda: [self.normalCursor(), self.setMode(0)])
+        if self._mode == 0: #Normal selection mode
             self.normalCursor()
-        if self._enable == 1:
+        if self._mode == 1: #Drawing mode
             self.changeCursorSprayCan()
         B.grid(column = 11, row = 0)
 
-        C = Button(self, text="Drawing cursor", command=lambda:[self.changeCursorSprayCan(), self.setEnable(1)])
+        C = Button(self, text="Drawing Mode", command=lambda:[self.drawCursor(), self.setMode(1)])
         C.grid(column = 11, row = 1)
+
+        D = Button(self, text="Delete Mode", command=lambda:[self.deleteCursor(), self.setMode(2)])
+        D.grid(column = 11, row = 2)
 
         test_list = StringVar()
         self.rect_list = Listbox(self, listvariable = test_list)
 
         self.rect_list.grid(column = 11, row = 3)
 
-        self.rect_list.insert(0, '#  x1  y1  x2  y2')
+        self.rect_list.insert(END, 'ID  x1  y1  x2  y2')
 
         Widget.bind(self.draw, "<1>", self.mouseDown)
         Widget.bind(self.draw, "<B1-Motion>", self.mouseMove)
         Widget.bind(self.draw, "<ButtonRelease-1>", self.mouseRelease)
+        self.draw.tag_bind("selected", "<Any-Enter>", self.mouseEnter)
+        self.draw.tag_bind("selected", "<Any-Leave>", self.mouseLeave) 
+        self.draw.tag_bind("selected", "<1>", self.clickOnRect)
 
-        # getter method
+    def setMode(self, x):
+        self._mode = x
 
-    # def get_age(self):
-    # return self._counter
-
-    # setter method
-
-    # def set_age(self, x):
-    #    self._counter = x
-
-    def setEnable(self, x):
-        self._enable = x
-
-    def changeCursorSprayCan(self):
+    def drawCursor(self):
         self.config(cursor = "crosshair")
-        #self.setEnable(1)
+        #self.setMode(1)
 
     def normalCursor(self):
         self.config(cursor = "arrow")
-        #self._setEnable(0)
+        #self._setMode(0)
+
+    def deleteCursor(self):
+        self.config(cursor = "pirate")
 
     def __init__(self, master=None):
         count = 0
         self._count = count
         enable = 0
-        self._enable = enable
+        self._mode = enable
+
+        self._rect_tracker = {}
+        self._all_rect_history = 1
+
         Frame.__init__(self, master)
         Pack.config(self)
         self.createWidgets()
+
+
+
+
+
+   # master = Tk()
+   # whatever_you_do = "Whatever you do will be insignificant, but it is very important that you do it.\n(Mahatma Gandhi)"
+   # msg = Message(master, text=whatever_you_do)
+   # msg.config(bg='lightgreen', font=('times', 24, 'italic'))
+   # msg.bind('<Button-1>', motion)
+   # msg.pack()
+   # mainloop()
 
 wanno = WallAnnotate()
 
